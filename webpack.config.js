@@ -1,0 +1,64 @@
+const path = require('path');
+const webpack = require('webpack');
+const validate = require('webpack-validator');
+
+module.exports = env => {
+  const valueIf = (add, value, alternate) => add ? value : alternate;
+  const ifProd = (value, alternate) => valueIf(env.prod, value, alternate);
+  const removeEmpty = array => array.filter(i => !!i);
+
+  return validate({
+    entry: './index.js',
+    context: __dirname,
+    output: {
+      path: path.resolve(__dirname, './build'),
+      filename: 'bundle.js',
+      publicPath: '/build/',
+    },
+    devtool: ifProd('source-map', 'eval'),
+    devServer: {
+      port: 8080,
+      historyApiFallback: true,
+    },
+    module: {
+      loaders: [
+        { test: /\.js$/, exclude: /node_modules/, loader: 'babel-loader' },
+        { test: /\.css$/, loader: 'style-loader!css-loader' },
+        { test: /\.scss$/, loaders: ['style', 'css', 'sass'] },
+        { test: /(\.eot|\.woff2|\.woff|\.ttf|\.svg)/, loader: 'file-loader' }
+      ]
+    },
+    plugins: removeEmpty([
+      ifProd(new webpack.optimize.DedupePlugin()),
+      ifProd(new webpack.LoaderOptionsPlugin({
+        minimize: true,
+        debug: false,
+        quiet: true,
+      })),
+      ifProd(new webpack.DefinePlugin({
+        'process.env': {
+          NODE_ENV: '"production"',
+        },
+      })),
+      ifProd(new webpack.optimize.UglifyJsPlugin({
+        sourceMap: true,
+        compress: {
+          screw_ie8: true, // eslint-disable-line
+          warnings: false,
+        },
+      })),
+    ])
+  });
+};
+
+// "slate": "rm -rf node_modules/* && npm install",
+// "start": "webpack-dev-server --inline --content-base ./ --env.dev",
+// "start-prod": "webpack --env.production"
+
+// "start": "http-server",
+// "extract-text-webpack-plugin": "^1.0.1",
+
+// "dev": "webpack-dev-server --inline --content-base ./ --env.dev",
+// "build": "webpack --env.prod",
+// "start": "http-server",
+// "setup": "npm install && npm run build"
